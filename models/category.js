@@ -8,7 +8,8 @@ const categorySchema = new mongoose.Schema({
   },
   parent: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
+    ref: 'Category', // Reference to the Category model
+    default: null, // Default to null if no parent is specified
   },
   isActive: {
     type: Boolean,
@@ -19,5 +20,6 @@ const categorySchema = new mongoose.Schema({
     default: true,
   },
 });
+
 
 module.exports = mongoose.model('Category', categorySchema);
