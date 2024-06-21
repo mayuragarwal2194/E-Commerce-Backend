@@ -1,6 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const Product = require('../models/product');
+const fs = require('fs');
+const path = require('path');
 const router = express.Router();
 
 // Multer configuration
@@ -93,11 +95,20 @@ router.delete('/:id', async (req, res) => {
   const productId = req.params.id;
 
   try {
-    const product = await Product.findByIdAndDelete(productId);
+    const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // Delete the image file
+    const imagePath = path.join(__dirname, '..', 'uploads', path.basename(product.image));
+    fs.unlink(imagePath, (err) => {
+      if (err) {
+        console.error('Failed to delete image:', err);
+      }
+    });
+
+    await Product.findByIdAndDelete(productId);
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(400).json({ message: error.message });
