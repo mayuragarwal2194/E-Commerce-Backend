@@ -15,7 +15,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// const upload = multer({ storage:storage }); or we can also write it as follows:-
+const upload = multer({ storage:storage });
 
 // Get all products
 router.get('/', async (req, res) => {

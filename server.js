@@ -1,10 +1,11 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const app = express();
+const jwt = require('jsonwebtoken');
+const path = require('path');
 
 const PORT = process.env.PORT || 5000;
 
