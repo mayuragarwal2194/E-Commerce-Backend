@@ -16,9 +16,18 @@ const variantSchema = new mongoose.Schema({
     color: {
       type: String,
     },
-    size: {
-      type: String,
-    },
+    size: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'size',
+    }],
+  },
+  variantFeaturedImage: {
+    type: String,
+    default: '',
+  },
+  variantGalleryImages: {
+    type: [String],
+    default: [],
   },
 }, { timestamps: true });
 

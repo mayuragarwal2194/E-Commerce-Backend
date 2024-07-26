@@ -9,10 +9,15 @@ const storage = multer.diskStorage({
       cb(null, 'uploads/featured');
     } else if (file.fieldname === 'galleryImages') {
       cb(null, 'uploads/gallery');
+    } else if (file.fieldname.startsWith('variantFeaturedImage')) {
+      cb(null, 'uploads/variants/featured');
+    } else if (file.fieldname.startsWith('variantGalleryImages')) {
+      cb(null, 'uploads/variants/gallery');
+    } else {
+      cb(new Error('Unexpected field'));
     }
   },
   filename: function (req, file, cb) {
-    // const uniquueName = `${Date.now()}-${file.originalname}`
     const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
   }
@@ -25,10 +30,7 @@ const uploadMiddleware = multer({
   fileFilter: function (req, file, cb) {
     checkFileType(file, cb);
   }
-}).fields([
-  { name: 'featuredImage', maxCount: 1 },
-  { name: 'galleryImages', maxCount: 10 }
-]);
+}).any(); // Accept any field names
 
 // Check file type
 function checkFileType(file, cb) {
