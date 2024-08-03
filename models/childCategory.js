@@ -7,10 +7,11 @@ const ChildCategorySchema = new mongoose.Schema({
     trim: true,
     minlength: 3
   },
-  parents: [{
+  parent: {  // Changed from 'parents' to 'parent'
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ParentCategory',
-  }],
+    required: true
+  },
   products: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
@@ -26,6 +27,6 @@ const ChildCategorySchema = new mongoose.Schema({
 }, {timestamps: true});
 
 // Compound index to ensure unique name within each parent
-ChildCategorySchema.index({ name: 1, parents: 1 }, { unique: true });
+ChildCategorySchema.index({ name: 1, parent: 1 }, { unique: true });  // Changed 'parents' to 'parent'
 
 module.exports = mongoose.model('ChildCategory', ChildCategorySchema);

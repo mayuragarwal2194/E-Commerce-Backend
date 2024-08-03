@@ -45,14 +45,14 @@ const addProduct = async (req, res) => {
         const sizeArray = Array.isArray(variant.attributes.size) ? variant.attributes.size : [variant.attributes.size];
         sizeIds = await Promise.all(
           sizeArray.map(async sizeName => {
-            console.log(`Looking up size: ${sizeName.toLowerCase()}`);
+            // console.log(`Looking up size: ${sizeName.toLowerCase()}`);
             const sizeDoc = await Size.findOne({ sizeName: sizeName.toLowerCase() });
-            console.log(`Found sizeDoc for ${sizeName}:`, sizeDoc);
+            // console.log(`Found sizeDoc for ${sizeName}:`, sizeDoc);
             return sizeDoc ? sizeDoc._id : null;
           })
         );
         sizeIds = sizeIds.filter(id => id !== null); // Remove any null values
-        console.log(`Size IDs for variant ${index}:`, sizeIds);
+        // console.log(`Size IDs for variant ${index}:`, sizeIds);
       }
 
       return { ...variant, variantFeaturedImage, variantGalleryImages, attributes: { ...variant.attributes, size: sizeIds } };
@@ -86,6 +86,128 @@ const addProduct = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// Update Product
+const updateProduct = async (req, res) => {
+  try {
+    // console.log('Request body:', req.body);
+    // console.log('Request files:', req.files);
+
+    const productId = req.params.id;
+    const {
+      itemName,
+      newPrice,
+      oldPrice,
+      isPopular,
+      shortDescription,
+      fullDescription,
+      stockStatus,
+      tag,
+      category,
+      variants
+    } = req.body;
+
+    // console.log('Product ID:', productId);
+
+    // Find the existing product
+    const existingProduct = await Product.findById(productId);
+    if (!existingProduct) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // console.log('Existing product:', existingProduct);
+
+    // Handle image uploads
+    const featuredImage = req.files?.find(file => file.fieldname === 'featuredImage')?.filename || existingProduct.featuredImage;
+    const newGalleryImages = req.files?.filter(file => file.fieldname === 'galleryImages').map(file => file.filename) || existingProduct.galleryImages;
+
+    // console.log('Featured image:', featuredImage);
+    // console.log('New gallery images:', newGalleryImages);
+
+    // Update fields conditionally
+    if (itemName !== undefined) existingProduct.itemName = itemName;
+    if (newPrice !== undefined) existingProduct.newPrice = newPrice;
+    if (oldPrice !== undefined) existingProduct.oldPrice = oldPrice;
+    if (isPopular !== undefined) existingProduct.isPopular = isPopular;
+    if (shortDescription !== undefined) existingProduct.shortDescription = shortDescription;
+    if (fullDescription !== undefined) existingProduct.fullDescription = fullDescription;
+    if (stockStatus !== undefined) existingProduct.stockStatus = stockStatus;
+    if (tag !== undefined) existingProduct.tag = tag;
+
+    if (category !== undefined) {
+      // console.log('Existing category:', existingProduct.category.toString());
+      // console.log('New category:', category);
+
+      // Check if category has changed
+      if (existingProduct.category.toString() !== category) {
+        // console.log('Category has changed. Updating child categories.');
+
+        // Remove product ID from the old category's products array
+        await childCategory.findByIdAndUpdate(existingProduct.category, { $pull: { products: existingProduct._id } });
+        // console.log(`Removed product ID from old category: ${existingProduct.category}`);
+
+        // Add product ID to the new category's products array
+        await childCategory.findByIdAndUpdate(category, { $push: { products: existingProduct._id } });
+        // console.log(`Added product ID to new category: ${category}`);
+
+        existingProduct.category = category;
+      }
+    }
+
+    if (req.files) existingProduct.featuredImage = featuredImage;
+    if (req.files) existingProduct.galleryImages = newGalleryImages;
+
+    // Update variants if provided
+    if (variants !== undefined) {
+      let parsedVariants;
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch (parseError) {
+        console.error('Error parsing variants JSON:', parseError);
+        return res.status(400).json({ message: 'Invalid variants JSON format', error: parseError.message });
+      }
+
+      // console.log('Parsed variants:', parsedVariants);
+
+      const updatedVariants = await Promise.all(parsedVariants.map(async (variant, index) => {
+        const variantFeaturedImageKey = `variantFeaturedImage${index}`;
+        const variantGalleryImagesKey = `variantGalleryImages${index}`;
+        const variantFeaturedImage = req.files?.find(file => file.fieldname === variantFeaturedImageKey)?.filename || variant.variantFeaturedImage;
+        const variantGalleryImages = req.files?.filter(file => file.fieldname === variantGalleryImagesKey).map(file => file.filename) || variant.variantGalleryImages;
+
+        // console.log(`Variant ${index} featured image:`, variantFeaturedImage);
+        // console.log(`Variant ${index} gallery images:`, variantGalleryImages);
+
+        let sizeIds = [];
+        if (variant.attributes?.size) {
+          const sizeArray = Array.isArray(variant.attributes.size) ? variant.attributes.size : [variant.attributes.size];
+          sizeIds = await Promise.all(sizeArray.map(async sizeName => {
+            const sizeDoc = await Size.findOne({ sizeName: sizeName.toLowerCase() });
+            return sizeDoc ? sizeDoc._id : null;
+          }));
+          sizeIds = sizeIds.filter(id => id !== null);
+        }
+
+        // console.log(`Variant ${index} size IDs:`, sizeIds);
+
+        return { ...variant, variantFeaturedImage, variantGalleryImages, attributes: { ...variant.attributes, size: sizeIds } };
+      }));
+
+      existingProduct.variants = updatedVariants;
+    }
+
+    // console.log('Updated product:', existingProduct);
+
+    await existingProduct.save();
+
+    res.status(200).json({ message: 'Product updated successfully', product: existingProduct });
+  } catch (error) {
+    console.error('Error in updateProduct:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
 
 // Get all Products
 const getAllProducts = async (req, res) => {
@@ -121,7 +243,7 @@ const deleteFiles = (files, dir) => {
       if (err) {
         console.error(`Error deleting file ${filePath}:`, err);
       } else {
-        console.log(`Deleted file ${filePath}`);
+        // console.log(`Deleted file ${filePath}`);
       }
     });
   });
@@ -181,20 +303,36 @@ const deleteProduct = async (req, res) => {
 // Get all products by parent category id
 const getProductsByCategory = async (req, res) => {
   try {
-    const parentCategoryId = req.params.categoryId;
+    const topCategoryId = req.params.categoryId;
+    console.log('Top Category ID:', topCategoryId);
 
-    // Find child categories for the given parent category
-    const childCategories = await childCategory.find({ parents: parentCategoryId });
+    // Find parent categories for the given top category
+    const parentCategories = await ParentCategory.find({ topCategory: topCategoryId });
+    console.log('Parent Categories:', parentCategories);
+
+    if (!parentCategories.length) {
+      return res.status(404).json({ message: 'No parent categories found for this top category' });
+    }
+
+    // Extract parent category IDs
+    const parentCategoryIds = parentCategories.map(parent => parent._id);
+    console.log('Parent Category IDs:', parentCategoryIds);
+
+    // Find child categories for the given parent categories
+    const childCategories = await childCategory.find({ parent: { $in: parentCategoryIds } });
+    console.log('Child Categories:', childCategories);
 
     if (!childCategories.length) {
-      return res.status(404).json({ message: 'No child categories found for this parent category' });
+      return res.status(404).json({ message: 'No child categories found for these parent categories' });
     }
 
     // Extract child category IDs
     const childCategoryIds = childCategories.map(child => child._id);
+    console.log('Child Category IDs:', childCategoryIds);
 
     // Find products associated with the child categories
     const products = await Product.find({ category: { $in: childCategoryIds } });
+    console.log('Products:', products);
 
     res.json(products);
   } catch (error) {
@@ -204,11 +342,13 @@ const getProductsByCategory = async (req, res) => {
 };
 
 
+
 module.exports = {
   addProduct,
   getAllProducts,
   getProductById,
   // addVariant,
   deleteProduct,
-  getProductsByCategory
+  getProductsByCategory,
+  updateProduct
 };

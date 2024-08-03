@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  getAllParentCategories, 
-  getParentById, 
-  addParentcategory, 
-  updateParentcCategory, 
-  deleteParentCategory, 
-  getChildCategoriesByParentId 
+const {
+  getAllParentCategories,
+  getParentById,
+  addParentCategory,
+  updateParentCategory,
+  deleteParentCategory,
+  getChildCategoriesByParentId
 } = require('../controllers/parentCategoryController');
+const { uploadNone } = require('../config/multerConfig');
 
-
-router.post('/add', addParentcategory);
-router.put('/:id', updateParentcCategory);
+router.post('/',uploadNone, addParentCategory);
+router.put('/:id',uploadNone, updateParentCategory);
 router.get('/', getAllParentCategories);
 router.get('/:id', getParentById);
 router.delete('/:id', deleteParentCategory);

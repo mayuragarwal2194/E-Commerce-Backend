@@ -5,7 +5,8 @@ const {
   getAllProducts, 
   getProductById, 
   deleteProduct, 
-  getProductsByCategory 
+  getProductsByCategory, 
+  updateProduct
 } = require('../controllers/productController');
 const { uploadMiddleware,handleMulterError } = require('../config/multerConfig');
 
@@ -13,6 +14,7 @@ router.post('/add',uploadMiddleware,handleMulterError, addProduct);
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
 router.delete('/:id', deleteProduct);
+router.put('/:id',uploadMiddleware, handleMulterError, updateProduct);
 
 // New route to get products by category
 router.get('/category/:categoryId', getProductsByCategory);
